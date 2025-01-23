@@ -28,10 +28,10 @@ const postReducer = (state = initialState, action) => {
   switch (action.type) {
     case "ADD_POST":
       return {
-        post: [...state.posts, action.payload],
+        posts: [...state.posts, action.payload],
       };
     case "REMOVE_POST":
-      let postArr = state.post.filter((post) => post.id !== action.payload);
+      let postArr = state.posts.filter((post) => post.id !== action.payload);
       return {
         post: postArr,
       };
@@ -39,3 +39,16 @@ const postReducer = (state = initialState, action) => {
       return state;
   }
 };
+
+// Create Store object
+const store = createStore(postReducer);
+
+//Define subscriber
+
+store.subscribe(() => {
+  const state = store.getState();
+  console.log("store accessed:", state);
+});
+store.dispatch(createPostAction({ id: 101, title: "React Hooks" }));
+store.dispatch(createPostAction({ id: 102, title: "Redux" }));
+store.dispatch(removePostAction(101));
