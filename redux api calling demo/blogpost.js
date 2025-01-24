@@ -1,54 +1,88 @@
-const { createStore } = require("redux");
-
-// define initialState
-
-const initialState = {
+const { createStore, applyMiddleware } = require("redux");
+const thunkMiddleware = require("redux-thunk").thunk;
+//initial state
+// initial State
+// step : 1
+const postInitialState = {
   posts: [],
+  error: "",
+  loading: false,
 };
 
 // Define Action Creators
 
-const createPostAction = (post) => {
+const fetchPostRequestAction = () => {
   return {
-    type: "ADD_POST",
-    payload: post,
+    type: "REQUEST_STARTED",
   };
 };
 
-const removePostAction = (id) => {
+const fetchPostSuccessAction = (posts) => {
   return {
-    type: "REMOVE_POST",
-    payload: id,
+    type: "REQUEST_SUCCESSFUL",
+    payload: posts,
   };
 };
 
-// Define Reducer
+const fetchPostErrorAction = (errorMessage) => {
+  return {
+    type: "REQUEST_ERROR",
+    payload: errorMessage,
+  };
+};
 
-const postReducer = (state = initialState, action) => {
+// Define Thunk Creator
+
+const fetchPost = () => {
+  return async (dispatch) => {
+    // api call
+    // resp rec
+    // error handle
+    dispatch(fetchPostRequestAction());
+    try {
+      const response = await fetch("http://jsonplaceholder.typicode.com/posts");
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      const data = await response.json();
+      let action = fetchPostSuccessAction(data);
+      dispatch(action);
+    } catch (error) {
+      dispatch(fetchPostErrorAction(error.message));
+    }
+  };
+};
+
+//Define Reducer
+const postReducer = (state = postInitialState, action) => {
   switch (action.type) {
-    case "ADD_POST":
+    case "REQUEST_STARTED":
       return {
-        posts: [...state.posts, action.payload],
+        ...state,
+        loading: true,
       };
-    case "REMOVE_POST":
-      let postArr = state.posts.filter((post) => post.id !== action.payload);
+    case "REQUEST_SUCCESSFUL":
       return {
-        post: postArr,
+        ...state,
+        loading: false,
+        posts: action.payload,
+      };
+    case "REQUEST_ERROR":
+      return {
+        ...state,
+        loading: false,
+        error: action.payload,
       };
     default:
       return state;
   }
 };
 
-// Create Store object
-const store = createStore(postReducer);
-
-//Define subscriber
-
+// Create store
+const store = createStore(postReducer, applyMiddleware(thunkMiddleware));
 store.subscribe(() => {
   const state = store.getState();
-  console.log("store accessed:", state);
+  console.log("state accessed", state);
 });
-store.dispatch(createPostAction({ id: 101, title: "React Hooks" }));
-store.dispatch(createPostAction({ id: 102, title: "Redux" }));
-store.dispatch(removePostAction(101));
+
+store.dispatch(fetchPost());
